@@ -16,12 +16,21 @@
   var CHIAVE_CACHE = 'mygames:bozza';
   var CHIAVE_SBLOCCO = 'mygames:sbloccato';
 
-  var FASCE = [
-    { id: 'lampo', etichetta: 'Fino a 15′', da: 0, a: 15 },
-    { id: 'breve', etichetta: '16 – 30′', da: 16, a: 30 },
-    { id: 'media', etichetta: '31 – 60′', da: 31, a: 60 },
-    { id: 'lunga', etichetta: '61 – 120′', da: 61, a: 120 },
-    { id: 'epica', etichetta: 'Oltre 120′', da: 121, a: 100000 }
+  var PRESET_DURATA = [
+    { id: 'lampo', etichetta: 'Fino a 15 minuti', min: null, max: 15 },
+    { id: 'breve', etichetta: 'Da 16 a 30 minuti', min: 16, max: 30 },
+    { id: 'media', etichetta: 'Da 31 a 60 minuti', min: 31, max: 60 },
+    { id: 'lunga', etichetta: 'Da 61 a 120 minuti', min: 61, max: 120 },
+    { id: 'epica', etichetta: 'Oltre 120 minuti', min: 121, max: null }
+  ];
+
+  var ORDINI = [
+    { id: 'nome', etichetta: 'Nome A → Z' },
+    { id: 'nome-desc', etichetta: 'Nome Z → A' },
+    { id: 'durata', etichetta: 'Durata crescente' },
+    { id: 'durata-desc', etichetta: 'Durata decrescente' },
+    { id: 'giocatori-desc', etichetta: 'Più giocatori' },
+    { id: 'giocatori', etichetta: 'Meno giocatori' }
   ];
 
   var stato = {
@@ -37,7 +46,8 @@
   var filtri = {
     testo: '',
     giocatori: null,
-    fasce: [],
+    durataMin: null,
+    durataMax: null,
     tag: [],
     tuttiITag: false,
     soloEspansioni: false,
@@ -45,6 +55,9 @@
   };
 
   var el = {};
+  var tendine = [];
+  var tendinaAperta = null;
+  var cercaTag = '';
 
   /* ---------------------------------------------------------
      Utilità
@@ -64,14 +77,19 @@
 
   function separaTag(testo) {
     if (!testo) return [];
-    return String(testo)
-      .split(',')
-      .map(function (t) { return t.trim(); })
+    return String(testo).split(',').map(function (t) { return t.trim(); })
       .filter(function (t) { return t.length > 0; });
   }
 
   function senzaAccenti(testo) {
     return chiave(testo).normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  function creaElemento(tag, classe, testo) {
+    var nodo = document.createElement(tag);
+    if (classe) nodo.className = classe;
+    if (testo !== undefined && testo !== null) nodo.textContent = testo;
+    return nodo;
   }
 
   function avvisa(testo) {
@@ -150,6 +168,10 @@
     return { giochi: giochi, espansioni: espansioni, configurazione: configurazione };
   }
 
+  function ordinaPerNome(elenco) {
+    return elenco.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'it'); });
+  }
+
   function aWorkbook() {
     var wb = XLSX.utils.book_new();
 
@@ -162,11 +184,8 @@
     XLSX.utils.book_append_sheet(wb, fg, 'Giochi');
 
     var righeEspansioni = [['Gioco base', 'Espansione', 'Note']];
-    stato.espansioni
-      .slice()
-      .sort(function (a, b) {
-        return a.base.localeCompare(b.base, 'it') || a.nome.localeCompare(b.nome, 'it');
-      })
+    stato.espansioni.slice()
+      .sort(function (a, b) { return a.base.localeCompare(b.base, 'it') || a.nome.localeCompare(b.nome, 'it'); })
       .forEach(function (e) { righeEspansioni.push([e.base, e.nome, e.note || null]); });
     var fe = XLSX.utils.aoa_to_sheet(righeEspansioni);
     fe['!cols'] = [{ wch: 42 }, { wch: 42 }, { wch: 30 }];
@@ -181,10 +200,6 @@
     XLSX.utils.book_append_sheet(wb, fc, 'Config');
 
     return wb;
-  }
-
-  function ordinaPerNome(elenco) {
-    return elenco.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'it'); });
   }
 
   function caricaDati() {
@@ -233,7 +248,7 @@
   }
 
   /* ---------------------------------------------------------
-     Filtri e ricerca
+     Filtri
      --------------------------------------------------------- */
 
   function espansioniDi(gioco) {
@@ -241,22 +256,27 @@
     return stato.espansioni.filter(function (e) { return chiave(e.base) === k; });
   }
 
-  function tuttiITag() {
+  function conteggioTag() {
     var visti = {};
     stato.giochi.forEach(function (g) {
       g.tag.forEach(function (t) { visti[t] = (visti[t] || 0) + 1; });
     });
+    return visti;
+  }
+
+  function elencoTag() {
+    var visti = conteggioTag();
     return Object.keys(visti).sort(function (a, b) {
       return visti[b] - visti[a] || a.localeCompare(b, 'it');
     });
   }
 
-  function durataSovrapposta(gioco, fascia) {
-    var da = gioco.dmin, a = gioco.dmax;
-    if (!da && !a) return false;
-    da = da || a;
-    a = a || da;
-    return da <= fascia.a && a >= fascia.da;
+  function presetAttivo() {
+    for (var i = 0; i < PRESET_DURATA.length; i++) {
+      var p = PRESET_DURATA[i];
+      if (p.min === filtri.durataMin && p.max === filtri.durataMax) return p;
+    }
+    return null;
   }
 
   function filtra() {
@@ -278,12 +298,12 @@
         if (filtri.giocatori < min || filtri.giocatori > max) return false;
       }
 
-      if (filtri.fasce.length) {
-        var ok = filtri.fasce.some(function (id) {
-          var fascia = FASCE.filter(function (f) { return f.id === id; })[0];
-          return fascia && durataSovrapposta(g, fascia);
-        });
-        if (!ok) return false;
+      if (filtri.durataMin !== null || filtri.durataMax !== null) {
+        var da = g.dmin || g.dmax;
+        var a = g.dmax || g.dmin;
+        if (!da && !a) return false;
+        if (filtri.durataMin !== null && a < filtri.durataMin) return false;
+        if (filtri.durataMax !== null && da > filtri.durataMax) return false;
       }
 
       if (filtri.tag.length) {
@@ -325,6 +345,93 @@
     return elenco;
   }
 
+  function etichettaDurata() {
+    if (filtri.durataMin === null && filtri.durataMax === null) return 'Qualsiasi';
+    var preset = presetAttivo();
+    if (preset) {
+      if (preset.min === null) return 'Fino a ' + preset.max + '′';
+      if (preset.max === null) return 'Oltre ' + (preset.min - 1) + '′';
+      return preset.min + '–' + preset.max + '′';
+    }
+    if (filtri.durataMin === null) return 'Fino a ' + filtri.durataMax + '′';
+    if (filtri.durataMax === null) return 'Da ' + filtri.durataMin + '′';
+    return filtri.durataMin + '–' + filtri.durataMax + '′';
+  }
+
+  function etichettaOrdine() {
+    var trovato = ORDINI.filter(function (o) { return o.id === filtri.ordine; })[0];
+    return trovato ? trovato.etichetta : ORDINI[0].etichetta;
+  }
+
+  function filtriAttivi() {
+    return !!(filtri.testo || filtri.giocatori || filtri.durataMin !== null
+      || filtri.durataMax !== null || filtri.tag.length || filtri.soloEspansioni);
+  }
+
+  function azzeraFiltri() {
+    filtri.testo = '';
+    filtri.giocatori = null;
+    filtri.durataMin = null;
+    filtri.durataMax = null;
+    filtri.tag = [];
+    filtri.soloEspansioni = false;
+    el.testo.value = '';
+    disegnaFiltri();
+    disegnaLista();
+  }
+
+  /* ---------------------------------------------------------
+     Menu a tendina
+     --------------------------------------------------------- */
+
+  function chiudiTendine() {
+    tendine.forEach(function (t) {
+      t.pannello.hidden = true;
+      t.bottone.setAttribute('aria-expanded', 'false');
+    });
+    tendinaAperta = null;
+    el.velo.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  function apriTendina(voce) {
+    var giaAperta = tendinaAperta === voce;
+    chiudiTendine();
+    if (giaAperta) return;
+    voce.pannello.hidden = false;
+    voce.bottone.setAttribute('aria-expanded', 'true');
+    tendinaAperta = voce;
+    el.velo.hidden = false;
+    if (window.matchMedia('(max-width: 619px)').matches) document.body.style.overflow = 'hidden';
+  }
+
+  function preparaTendine() {
+    tendine = Array.prototype.map.call(document.querySelectorAll('.tendina'), function (nodo) {
+      var voce = {
+        nome: nodo.getAttribute('data-tendina'),
+        nodo: nodo,
+        bottone: nodo.querySelector('.tendina__btn'),
+        pannello: nodo.querySelector('.tendina__pannello')
+      };
+      voce.bottone.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        apriTendina(voce);
+      });
+      voce.pannello.addEventListener('click', function (ev) { ev.stopPropagation(); });
+      return voce;
+    });
+
+    el.velo.addEventListener('click', chiudiTendine);
+    document.addEventListener('click', chiudiTendine);
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && tendinaAperta) chiudiTendine();
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-chiudi]'), function (b) {
+      b.addEventListener('click', chiudiTendine);
+    });
+  }
+
   /* ---------------------------------------------------------
      Presentazione dei valori
      --------------------------------------------------------- */
@@ -345,15 +452,185 @@
   }
 
   /* ---------------------------------------------------------
-     Disegno della collezione
+     Disegno dei filtri
      --------------------------------------------------------- */
 
-  function creaElemento(tag, classe, testo) {
-    var nodo = document.createElement(tag);
-    if (classe) nodo.className = classe;
-    if (testo !== undefined && testo !== null) nodo.textContent = testo;
-    return nodo;
+  function disegnaNumeri() {
+    el.numeriGiocatori.textContent = '';
+    for (var n = 1; n <= 12; n++) {
+      (function (valore) {
+        var b = creaElemento('button', 'numero', valore === 12 ? '12+' : String(valore));
+        b.type = 'button';
+        b.setAttribute('aria-pressed', filtri.giocatori === valore ? 'true' : 'false');
+        b.addEventListener('click', function () {
+          filtri.giocatori = filtri.giocatori === valore ? null : valore;
+          disegnaFiltri();
+          disegnaLista();
+        });
+        el.numeriGiocatori.appendChild(b);
+      })(n);
+    }
   }
+
+  function disegnaPresetDurata(saltaIntervallo) {
+    var attivo = presetAttivo();
+    el.presetDurata.textContent = '';
+    PRESET_DURATA.forEach(function (p) {
+      var b = creaElemento('button', 'opzione', p.etichetta);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', attivo && attivo.id === p.id ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        if (attivo && attivo.id === p.id) {
+          filtri.durataMin = null;
+          filtri.durataMax = null;
+        } else {
+          filtri.durataMin = p.min;
+          filtri.durataMax = p.max;
+        }
+        disegnaFiltri();
+        disegnaLista();
+      });
+      el.presetDurata.appendChild(b);
+    });
+
+    // mentre l'utente scrive nei due campi non li riscriviamo sotto le sue dita
+    if (saltaIntervallo) return;
+    el.durataDa.value = filtri.durataMin === null ? '' : filtri.durataMin;
+    el.durataA.value = filtri.durataMax === null ? '' : filtri.durataMax;
+  }
+
+  function disegnaListaTag() {
+    var conteggi = conteggioTag();
+    var ricerca = senzaAccenti(cercaTag);
+    el.listaTag.textContent = '';
+
+    var tutti = elencoTag();
+    var scelti = tutti.filter(function (t) { return filtri.tag.indexOf(t) >= 0; });
+    var restanti = tutti.filter(function (t) {
+      return filtri.tag.indexOf(t) < 0 && (!ricerca || senzaAccenti(t).indexOf(ricerca) >= 0);
+    });
+
+    scelti.concat(restanti).forEach(function (t) {
+      var attivo = filtri.tag.indexOf(t) >= 0;
+      var b = creaElemento('button', 'scelta');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', attivo ? 'true' : 'false');
+      b.appendChild(creaElemento('span', null, t));
+      b.appendChild(creaElemento('span', 'scelta__conteggio', String(conteggi[t] || 0)));
+      b.addEventListener('click', function () {
+        var i = filtri.tag.indexOf(t);
+        if (i >= 0) filtri.tag.splice(i, 1); else filtri.tag.push(t);
+        disegnaFiltri();
+        disegnaLista();
+      });
+      el.listaTag.appendChild(b);
+    });
+
+    if (!el.listaTag.childNodes.length) {
+      el.listaTag.appendChild(creaElemento('p', 'nota', 'Nessun tag corrisponde.'));
+    }
+  }
+
+  function disegnaListaOrdine() {
+    el.listaOrdine.textContent = '';
+    ORDINI.forEach(function (o) {
+      var b = creaElemento('button', 'scelta', o.etichetta);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', filtri.ordine === o.id ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        filtri.ordine = o.id;
+        chiudiTendine();
+        disegnaFiltri();
+        disegnaLista();
+      });
+      el.listaOrdine.appendChild(b);
+    });
+  }
+
+  function aggiungiChip(testo, alRimuovere) {
+    var b = creaElemento('button', 'attivo');
+    b.type = 'button';
+    b.appendChild(creaElemento('span', null, testo));
+    b.appendChild(creaElemento('span', 'attivo__x', '×'));
+    b.setAttribute('aria-label', 'Rimuovi il filtro ' + testo);
+    b.addEventListener('click', function () {
+      alRimuovere();
+      disegnaFiltri();
+      disegnaLista();
+    });
+    el.attivi.appendChild(b);
+  }
+
+  function disegnaChipAttivi() {
+    el.attivi.textContent = '';
+
+    if (filtri.giocatori) {
+      aggiungiChip(filtri.giocatori + (filtri.giocatori === 12 ? '+ giocatori' : ' giocatori'), function () {
+        filtri.giocatori = null;
+      });
+    }
+
+    if (filtri.durataMin !== null || filtri.durataMax !== null) {
+      aggiungiChip(etichettaDurata(), function () {
+        filtri.durataMin = null;
+        filtri.durataMax = null;
+      });
+    }
+
+    filtri.tag.forEach(function (t) {
+      aggiungiChip(t, function () {
+        var i = filtri.tag.indexOf(t);
+        if (i >= 0) filtri.tag.splice(i, 1);
+      });
+    });
+
+    if (filtri.soloEspansioni) {
+      aggiungiChip('Con espansioni', function () { filtri.soloEspansioni = false; });
+    }
+
+    if (filtriAttivi()) {
+      var azzera = creaElemento('button', 'attivo attivo--azzera', 'Azzera tutto');
+      azzera.type = 'button';
+      azzera.addEventListener('click', azzeraFiltri);
+      el.attivi.appendChild(azzera);
+    }
+  }
+
+  function segnaTendina(nome, attivo) {
+    var voce = tendine.filter(function (t) { return t.nome === nome; })[0];
+    if (voce) voce.bottone.classList.toggle('tendina__btn--attivo', !!attivo);
+  }
+
+  function disegnaFiltri(saltaIntervallo) {
+    el.valGiocatori.textContent = filtri.giocatori
+      ? (filtri.giocatori === 12 ? '12 o più' : filtri.giocatori + ' giocatori')
+      : 'Tutti';
+    el.valDurata.textContent = etichettaDurata();
+    el.valTag.textContent = filtri.tag.length === 0 ? 'Tutti'
+      : (filtri.tag.length === 1 ? filtri.tag[0] : filtri.tag.length + ' tag');
+    el.valOrdine.textContent = etichettaOrdine();
+
+    segnaTendina('giocatori', filtri.giocatori);
+    segnaTendina('durata', filtri.durataMin !== null || filtri.durataMax !== null);
+    segnaTendina('tag', filtri.tag.length);
+
+    el.btnSoloEspansioni.setAttribute('aria-pressed', filtri.soloEspansioni ? 'true' : 'false');
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-modo-tag]'), function (b) {
+      var attivo = (b.getAttribute('data-modo-tag') === 'tutti') === filtri.tuttiITag;
+      b.setAttribute('aria-pressed', attivo ? 'true' : 'false');
+    });
+
+    disegnaNumeri();
+    disegnaPresetDurata(saltaIntervallo);
+    disegnaListaTag();
+    disegnaListaOrdine();
+    disegnaChipAttivi();
+  }
+
+  /* ---------------------------------------------------------
+     Disegno della collezione
+     --------------------------------------------------------- */
 
   function disegnaLista() {
     var elenco = filtra();
@@ -375,9 +652,7 @@
       var nome = creaElemento('span', 'riga__nome');
       nome.setAttribute('role', 'cell');
       nome.appendChild(document.createTextNode(g.nome));
-      if (esp.length) {
-        nome.appendChild(creaElemento('span', 'riga__espansioni', esp.length + (esp.length === 1 ? ' esp.' : ' esp.')));
-      }
+      if (esp.length) nome.appendChild(creaElemento('span', 'riga__espansioni', esp.length + ' esp.'));
       riga.appendChild(nome);
 
       var dati = creaElemento('span', 'riga__dati');
@@ -430,29 +705,19 @@
     el.lista.hidden = elenco.length === 0;
     el.risultati.textContent = elenco.length === stato.giochi.length
       ? 'Tutti i ' + stato.giochi.length + ' giochi'
-      : elenco.length + ' giochi su ' + stato.giochi.length;
+      : elenco.length + (elenco.length === 1 ? ' gioco su ' : ' giochi su ') + stato.giochi.length;
   }
 
-  function disegnaTag() {
-    var elencoTag = tuttiITag();
-    el.tag.textContent = '';
-    elencoTag.forEach(function (t) {
-      var attivo = filtri.tag.indexOf(t) >= 0;
-      var pillola = creaElemento('button', 'pillola', t);
-      pillola.type = 'button';
-      pillola.setAttribute('aria-pressed', attivo ? 'true' : 'false');
-      pillola.addEventListener('click', function () {
-        var i = filtri.tag.indexOf(t);
-        if (i >= 0) filtri.tag.splice(i, 1); else filtri.tag.push(t);
-        disegnaTag();
-        disegnaLista();
-      });
-      el.tag.appendChild(pillola);
-    });
+  function disegnaConteggio() {
+    el.conteggio.textContent = stato.giochi.length + ' giochi · ' + stato.espansioni.length + ' espansioni'
+      + (stato.bozza ? ' · modifiche non pubblicate' : '');
+  }
 
+  function disegnaTagModulo() {
+    var tutti = elencoTag();
     el.elencoTag.textContent = '';
     el.tagSuggeriti.textContent = '';
-    elencoTag.forEach(function (t) {
+    tutti.forEach(function (t) {
       var opzione = document.createElement('option');
       opzione.value = t;
       el.elencoTag.appendChild(opzione);
@@ -468,15 +733,11 @@
     });
   }
 
-  function disegnaConteggio() {
-    el.conteggio.textContent = stato.giochi.length + ' giochi · ' + stato.espansioni.length + ' espansioni'
-      + (stato.bozza ? ' · modifiche non pubblicate' : '');
-  }
-
   function disegnaTutto() {
     disegnaConteggio();
-    disegnaTag();
+    disegnaFiltri();
     disegnaLista();
+    disegnaTagModulo();
     disegnaGestione();
     disegnaStatoSalvataggio();
   }
@@ -491,7 +752,6 @@
     var ricerca = senzaAccenti(el.gCerca.value || '');
     el.gestioneLista.textContent = '';
 
-    // elenco dei giochi base nel modulo espansioni
     var selezionato = el.eBase.value;
     el.eBase.textContent = '';
     var vuota = document.createElement('option');
@@ -798,6 +1058,7 @@
 
   function mostraVista(quale) {
     var gestione = quale === 'gestione';
+    chiudiTendine();
     el.vistaCollezione.hidden = gestione;
     el.vistaGestione.hidden = !gestione;
     el.btnGestione.textContent = gestione ? 'Collezione' : 'Gestione';
@@ -805,7 +1066,7 @@
   }
 
   function sbloccato() {
-    return sessionStorage.getItem(CHIAVE_SBLOCCO) === '1';
+    try { return sessionStorage.getItem(CHIAVE_SBLOCCO) === '1'; } catch (e) { return false; }
   }
 
   function aggiornaSblocco() {
@@ -839,7 +1100,7 @@
   }
 
   /* ---------------------------------------------------------
-     Tema
+     Tema — scuro se non è stato scelto altro
      --------------------------------------------------------- */
 
   var ICONA_SOLE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">'
@@ -848,17 +1109,16 @@
     + '<path d="M20 14.4A8.4 8.4 0 0 1 9.6 4a8.4 8.4 0 1 0 10.4 10.4z"/></svg>';
 
   function applicaTema(tema) {
-    if (tema) document.documentElement.setAttribute('data-tema', tema);
-    else document.documentElement.removeAttribute('data-tema');
-    var scuro = tema === 'dark' || (!tema && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var scuro = tema !== 'light';
+    document.documentElement.setAttribute('data-tema', scuro ? 'dark' : 'light');
     el.iconaTema.innerHTML = scuro ? ICONA_SOLE : ICONA_LUNA;
-    $('btn-tema').setAttribute('aria-label', scuro ? 'Passa al tema chiaro' : 'Passa al tema scuro');
+    el.btnTema.setAttribute('aria-label', scuro ? 'Passa al tema chiaro' : 'Passa al tema scuro');
+    var colore = document.querySelector('meta[name="theme-color"]');
+    if (colore) colore.setAttribute('content', scuro ? '#111113' : '#f6f6f4');
   }
 
   function alternaTema() {
-    var attuale = document.documentElement.getAttribute('data-tema');
-    var scuro = attuale === 'dark' || (!attuale && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    var nuovo = scuro ? 'light' : 'dark';
+    var nuovo = document.documentElement.getAttribute('data-tema') === 'light' ? 'dark' : 'light';
     scriviLocale(CHIAVE_TEMA, nuovo);
     applicaTema(nuovo);
   }
@@ -868,98 +1128,83 @@
      --------------------------------------------------------- */
 
   function preparaFiltri() {
-    FASCE.forEach(function (fascia) {
-      var pillola = creaElemento('button', 'pillola', fascia.etichetta);
-      pillola.type = 'button';
-      pillola.setAttribute('aria-pressed', 'false');
-      pillola.addEventListener('click', function () {
-        var i = filtri.fasce.indexOf(fascia.id);
-        if (i >= 0) filtri.fasce.splice(i, 1); else filtri.fasce.push(fascia.id);
-        pillola.setAttribute('aria-pressed', i >= 0 ? 'false' : 'true');
-        disegnaLista();
-      });
-      el.durata.appendChild(pillola);
-    });
-
     el.testo.addEventListener('input', function () {
       filtri.testo = el.testo.value;
+      disegnaChipAttivi();
       disegnaLista();
     });
 
-    el.giocatori.addEventListener('input', function () {
-      filtri.giocatori = numero(el.giocatori.value);
-      disegnaLista();
-    });
-
-    var passo = function (delta) {
-      var valore = numero(el.giocatori.value) || 0;
-      valore = Math.min(20, Math.max(0, valore + delta));
-      el.giocatori.value = valore ? valore : '';
-      filtri.giocatori = valore || null;
+    // I due campi restano come li scrive l'utente: se li inverte, il limite
+    // inferiore e quello superiore vengono messi in ordine solo internamente.
+    var leggiIntervallo = function () {
+      var da = numero(el.durataDa.value);
+      var a = numero(el.durataA.value);
+      if (da !== null && a !== null && da > a) { var scambio = da; da = a; a = scambio; }
+      filtri.durataMin = da;
+      filtri.durataMax = a;
+      disegnaFiltri(true);
       disegnaLista();
     };
-    $('f-giocatori-meno').addEventListener('click', function () { passo(-1); });
-    $('f-giocatori-piu').addEventListener('click', function () { passo(1); });
-
-    el.ordine.addEventListener('change', function () {
-      filtri.ordine = el.ordine.value;
-      disegnaLista();
+    [el.durataDa, el.durataA].forEach(function (campo) {
+      campo.addEventListener('input', leggiIntervallo);
+      campo.addEventListener('change', leggiIntervallo);
     });
 
-    var soloEspansioni = document.querySelector('[data-solo-espansioni]');
-    soloEspansioni.addEventListener('click', function () {
+    el.cercaTag.addEventListener('input', function () {
+      cercaTag = el.cercaTag.value;
+      disegnaListaTag();
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-modo-tag]'), function (b) {
+      b.addEventListener('click', function () {
+        filtri.tuttiITag = b.getAttribute('data-modo-tag') === 'tutti';
+        disegnaFiltri();
+        disegnaLista();
+      });
+    });
+
+    el.btnSoloEspansioni.addEventListener('click', function () {
       filtri.soloEspansioni = !filtri.soloEspansioni;
-      soloEspansioni.setAttribute('aria-pressed', filtri.soloEspansioni ? 'true' : 'false');
+      disegnaFiltri();
       disegnaLista();
     });
 
-    el.btnModoTag.addEventListener('click', function () {
-      filtri.tuttiITag = !filtri.tuttiITag;
-      el.btnModoTag.setAttribute('aria-pressed', filtri.tuttiITag ? 'true' : 'false');
-      el.btnModoTag.textContent = filtri.tuttiITag ? 'tutti i tag' : 'almeno uno';
-      disegnaLista();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-azzera]'), function (b) {
+      b.addEventListener('click', function () {
+        var quale = b.getAttribute('data-azzera');
+        if (quale === 'giocatori') filtri.giocatori = null;
+        if (quale === 'durata') { filtri.durataMin = null; filtri.durataMax = null; }
+        if (quale === 'tag') filtri.tag = [];
+        disegnaFiltri();
+        disegnaLista();
+      });
     });
-
-    el.btnTuttiTag.addEventListener('click', function () {
-      var aperto = el.tag.classList.toggle('aperto');
-      el.btnTuttiTag.textContent = aperto ? 'mostra meno' : 'mostra tutti';
-    });
-
-    $('btn-azzera').addEventListener('click', function () {
-      filtri.testo = '';
-      filtri.giocatori = null;
-      filtri.fasce = [];
-      filtri.tag = [];
-      filtri.soloEspansioni = false;
-      filtri.ordine = 'nome';
-      el.testo.value = '';
-      el.giocatori.value = '';
-      el.ordine.value = 'nome';
-      soloEspansioni.setAttribute('aria-pressed', 'false');
-      Array.prototype.forEach.call(el.durata.children, function (p) { p.setAttribute('aria-pressed', 'false'); });
-      disegnaTag();
-      disegnaLista();
-    });
-
-    el.filtriModulo.addEventListener('submit', function (ev) { ev.preventDefault(); });
   }
 
   function avvia() {
     el = {
       conteggio: $('conteggio-testata'),
       avviso: $('avviso'),
+      velo: $('velo'),
+      btnTema: $('btn-tema'),
       iconaTema: $('icona-tema'),
       btnGestione: $('btn-gestione'),
       vistaCollezione: $('vista-collezione'),
       vistaGestione: $('vista-gestione'),
-      filtriModulo: $('filtri'),
       testo: $('f-testo'),
-      giocatori: $('f-giocatori'),
-      ordine: $('f-ordine'),
-      durata: $('f-durata'),
-      tag: $('f-tag'),
-      btnModoTag: $('btn-modo-tag'),
-      btnTuttiTag: $('btn-tutti-tag'),
+      valGiocatori: $('val-giocatori'),
+      valDurata: $('val-durata'),
+      valTag: $('val-tag'),
+      valOrdine: $('val-ordine'),
+      numeriGiocatori: $('numeri-giocatori'),
+      presetDurata: $('preset-durata'),
+      durataDa: $('d-da'),
+      durataA: $('d-a'),
+      cercaTag: $('cerca-tag'),
+      listaTag: $('lista-tag'),
+      listaOrdine: $('lista-ordine'),
+      btnSoloEspansioni: $('btn-solo-espansioni'),
+      attivi: $('attivi'),
       risultati: $('risultati'),
       lista: $('lista'),
       righe: $('righe'),
@@ -998,8 +1243,8 @@
       messaggioSalvataggio: $('messaggio-salvataggio')
     };
 
-    applicaTema(leggiLocale(CHIAVE_TEMA));
-    $('btn-tema').addEventListener('click', alternaTema);
+    applicaTema(leggiLocale(CHIAVE_TEMA) === 'light' ? 'light' : 'dark');
+    el.btnTema.addEventListener('click', alternaTema);
 
     el.btnGestione.addEventListener('click', function () {
       mostraVista(el.vistaGestione.hidden ? 'gestione' : 'collezione');
@@ -1021,6 +1266,7 @@
       avvisa('Token rimosso da questo dispositivo.');
     });
 
+    preparaTendine();
     preparaFiltri();
 
     caricaDati()

@@ -1,12 +1,21 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-tema="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mygames — la mia collezione di giochi da tavolo</title>
 <meta name="description" content="La mia collezione di giochi da tavolo: filtra per nome, giocatori, durata e tipologia.">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#111113">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<script>
+  /* Applica il tema prima del disegno per evitare il lampo di colore. */
+  (function () {
+    var salvato = null;
+    try { salvato = localStorage.getItem('mygames:tema'); } catch (e) { /* ignora */ }
+    document.documentElement.setAttribute('data-tema', salvato === 'light' ? 'light' : 'dark');
+  })();
+</script>
 <link rel="stylesheet" href="css/stile.css">
 </head>
 <body>
@@ -19,8 +28,8 @@
     </a>
     <p class="testata__conteggio" id="conteggio-testata" aria-live="polite"></p>
     <div class="testata__azioni">
-      <button type="button" class="bottone bottone--fantasma" id="btn-tema" aria-label="Cambia tema">
-        <span class="icona" id="icona-tema" aria-hidden="true">◐</span>
+      <button type="button" class="bottone bottone--icona" id="btn-tema" aria-label="Cambia tema">
+        <span class="icona" id="icona-tema" aria-hidden="true"></span>
       </button>
       <button type="button" class="bottone bottone--pieno" id="btn-gestione">Gestione</button>
     </div>
@@ -32,67 +41,102 @@
   <!-- ===================== VISTA COLLEZIONE ===================== -->
   <section id="vista-collezione">
 
-    <form class="filtri" id="filtri" autocomplete="off">
-      <div class="filtri__riga">
-        <div class="campo campo--cerca">
-          <label class="etichetta" for="f-testo">Cerca</label>
-          <div class="cerca">
-            <span class="cerca__icona" aria-hidden="true">⌕</span>
-            <input type="search" id="f-testo" class="input" placeholder="Nome del gioco o dell'espansione…">
+    <div class="barra">
+      <div class="cerca">
+        <span class="cerca__icona" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+        </span>
+        <input type="search" id="f-testo" class="input" placeholder="Cerca un gioco o un'espansione…" autocomplete="off" aria-label="Cerca">
+      </div>
+
+      <div class="tendine" id="tendine">
+
+        <div class="tendina" data-tendina="giocatori">
+          <button type="button" class="tendina__btn" aria-expanded="false" aria-controls="pan-giocatori">
+            <span class="tendina__etichetta">Giocatori</span>
+            <span class="tendina__valore" id="val-giocatori">Tutti</span>
+            <span class="tendina__freccia" aria-hidden="true"></span>
+          </button>
+          <div class="tendina__pannello" id="pan-giocatori" hidden>
+            <p class="pannello-filtro__titolo">In quanti giocate?</p>
+            <div class="numeri" id="numeri-giocatori"></div>
+            <div class="pannello-filtro__piede">
+              <button type="button" class="collegamento" data-azzera="giocatori">Qualsiasi numero</button>
+              <button type="button" class="bottone bottone--fantasma bottone--compatto" data-chiudi>Fatto</button>
+            </div>
           </div>
         </div>
 
-        <div class="campo">
-          <label class="etichetta" for="f-giocatori">Giocatori</label>
-          <div class="contatore">
-            <button type="button" class="contatore__btn" id="f-giocatori-meno" aria-label="Meno giocatori">−</button>
-            <input type="number" id="f-giocatori" class="contatore__valore" min="1" max="20" placeholder="—" aria-label="Numero di giocatori">
-            <button type="button" class="contatore__btn" id="f-giocatori-piu" aria-label="Più giocatori">+</button>
+        <div class="tendina" data-tendina="durata">
+          <button type="button" class="tendina__btn" aria-expanded="false" aria-controls="pan-durata">
+            <span class="tendina__etichetta">Durata</span>
+            <span class="tendina__valore" id="val-durata">Qualsiasi</span>
+            <span class="tendina__freccia" aria-hidden="true"></span>
+          </button>
+          <div class="tendina__pannello" id="pan-durata" hidden>
+            <p class="pannello-filtro__titolo">Intervalli preimpostati</p>
+            <div class="opzioni" id="preset-durata"></div>
+            <p class="pannello-filtro__titolo">Oppure scrivilo tu</p>
+            <div class="intervallo">
+              <label class="intervallo__campo">
+                <span>da</span>
+                <input type="number" id="d-da" class="input input--numero" min="0" max="2000" placeholder="0" inputmode="numeric">
+              </label>
+              <label class="intervallo__campo">
+                <span>a</span>
+                <input type="number" id="d-a" class="input input--numero" min="0" max="2000" placeholder="∞" inputmode="numeric">
+              </label>
+              <span class="intervallo__unita">minuti</span>
+            </div>
+            <div class="pannello-filtro__piede">
+              <button type="button" class="collegamento" data-azzera="durata">Qualsiasi durata</button>
+              <button type="button" class="bottone bottone--fantasma bottone--compatto" data-chiudi>Fatto</button>
+            </div>
           </div>
         </div>
 
-        <div class="campo">
-          <label class="etichetta" for="f-ordine">Ordina</label>
-          <select id="f-ordine" class="input">
-            <option value="nome">Nome A → Z</option>
-            <option value="nome-desc">Nome Z → A</option>
-            <option value="durata">Durata crescente</option>
-            <option value="durata-desc">Durata decrescente</option>
-            <option value="giocatori-desc">Più giocatori</option>
-            <option value="giocatori">Meno giocatori</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="filtri__riga filtri__riga--gruppi">
-        <div class="campo campo--largo">
-          <span class="etichetta">Durata</span>
-          <div class="pillole" id="f-durata" role="group" aria-label="Filtra per durata"></div>
-        </div>
-        <div class="campo">
-          <span class="etichetta">Espansioni</span>
-          <div class="pillole">
-            <button type="button" class="pillola" data-solo-espansioni="1" aria-pressed="false">Solo con espansioni</button>
+        <div class="tendina" data-tendina="tag">
+          <button type="button" class="tendina__btn" aria-expanded="false" aria-controls="pan-tag">
+            <span class="tendina__etichetta">Tag</span>
+            <span class="tendina__valore" id="val-tag">Tutti</span>
+            <span class="tendina__freccia" aria-hidden="true"></span>
+          </button>
+          <div class="tendina__pannello tendina__pannello--largo" id="pan-tag" hidden>
+            <div class="segmentato" role="group" aria-label="Come combinare i tag">
+              <button type="button" data-modo-tag="uno" aria-pressed="true">Almeno uno</button>
+              <button type="button" data-modo-tag="tutti" aria-pressed="false">Tutti</button>
+            </div>
+            <input type="search" id="cerca-tag" class="input input--compatto" placeholder="Filtra i tag…" autocomplete="off" aria-label="Filtra i tag">
+            <div class="elenco-scelte" id="lista-tag"></div>
+            <div class="pannello-filtro__piede">
+              <button type="button" class="collegamento" data-azzera="tag">Nessun tag</button>
+              <button type="button" class="bottone bottone--fantasma bottone--compatto" data-chiudi>Fatto</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="campo campo--largo">
-        <div class="etichetta etichetta--riga">
-          <span>Tag</span>
-          <div class="etichetta__strumenti">
-            <button type="button" class="collegamento" id="btn-modo-tag" aria-pressed="false" title="Passa da 'almeno un tag' a 'tutti i tag'">almeno uno</button>
-            <button type="button" class="collegamento" id="btn-tutti-tag">mostra tutti</button>
+        <div class="tendina" data-tendina="ordine">
+          <button type="button" class="tendina__btn" aria-expanded="false" aria-controls="pan-ordine">
+            <span class="tendina__etichetta">Ordina</span>
+            <span class="tendina__valore" id="val-ordine">Nome A → Z</span>
+            <span class="tendina__freccia" aria-hidden="true"></span>
+          </button>
+          <div class="tendina__pannello" id="pan-ordine" hidden>
+            <div class="elenco-scelte" id="lista-ordine"></div>
           </div>
         </div>
-        <div class="pillole pillole--tag" id="f-tag" role="group" aria-label="Filtra per tag"></div>
+
+        <button type="button" class="tendina__btn tendina__btn--interruttore" id="btn-solo-espansioni" aria-pressed="false">
+          <span class="tendina__etichetta">Espansioni</span>
+          <span class="tendina__valore">Solo chi le ha</span>
+        </button>
+
       </div>
 
-      <div class="filtri__piede">
-        <p class="risultati" id="risultati" aria-live="polite"></p>
-        <button type="button" class="collegamento collegamento--forte" id="btn-azzera">Azzera filtri</button>
-      </div>
-    </form>
+      <div class="attivi" id="attivi"></div>
+
+      <p class="risultati" id="risultati" aria-live="polite"></p>
+    </div>
 
     <div class="tabella" id="lista" role="table" aria-label="Collezione di giochi">
       <div class="tabella__testata" role="row">
@@ -138,25 +182,25 @@
             </div>
             <div class="campo">
               <label class="etichetta" for="g-min">Giocatori min</label>
-              <input type="number" id="g-min" class="input" min="1" max="99">
+              <input type="number" id="g-min" class="input" min="1" max="99" inputmode="numeric">
             </div>
             <div class="campo">
               <label class="etichetta" for="g-max">Giocatori max</label>
-              <input type="number" id="g-max" class="input" min="1" max="99">
+              <input type="number" id="g-max" class="input" min="1" max="99" inputmode="numeric">
             </div>
             <div class="campo">
               <label class="etichetta" for="g-dmin">Durata min (minuti)</label>
-              <input type="number" id="g-dmin" class="input" min="0" max="2000">
+              <input type="number" id="g-dmin" class="input" min="0" max="2000" inputmode="numeric">
             </div>
             <div class="campo">
               <label class="etichetta" for="g-dmax">Durata max (minuti)</label>
-              <input type="number" id="g-dmax" class="input" min="0" max="2000">
+              <input type="number" id="g-dmax" class="input" min="0" max="2000" inputmode="numeric">
             </div>
             <div class="campo campo--largo">
               <label class="etichetta" for="g-tag">Tag</label>
               <input type="text" id="g-tag" class="input" list="elenco-tag" placeholder="Separati da virgola — es. Party game, Bluff">
               <datalist id="elenco-tag"></datalist>
-              <div class="pillole pillole--tag pillole--suggerite" id="tag-suggeriti"></div>
+              <div class="pillole pillole--suggerite" id="tag-suggeriti"></div>
             </div>
             <div class="campo campo--largo">
               <label class="etichetta" for="g-note">Note</label>
@@ -249,6 +293,7 @@
   </div>
 </footer>
 
+<div class="velo" id="velo" hidden></div>
 <div class="avviso" id="avviso" hidden role="status"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>

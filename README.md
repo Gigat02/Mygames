@@ -16,6 +16,18 @@ Sito: **https://gigat02.github.io/Mygames/**
 - L'area **Gestione** permette di aggiungere, modificare ed eliminare giochi ed espansioni.
   Ogni modifica viene riscritta nello stesso file Excel.
 
+## Interfaccia
+
+- L'impaginazione parte dallo schermo del telefono: i filtri diventano fogli che salgono dal
+  basso, l'elenco diventa una scheda per gioco. Da 620 px in su i filtri tornano popover e da
+  860 px l'elenco torna una tabella.
+- Il tema **scuro è quello predefinito**; il pulsante nella testata passa al chiaro e la scelta
+  resta memorizzata nel browser.
+- I filtri sono quattro menu a tendina — giocatori, durata, tag e ordinamento — più
+  l'interruttore per i soli giochi con espansioni. La durata offre cinque intervalli
+  preimpostati e due campi `da`/`a` per scriverne uno qualsiasi. I filtri attivi compaiono come
+  etichette sotto la barra e si tolgono con un tocco.
+
 ## Modificare la collezione
 
 1. Apri il sito e premi **Gestione**.

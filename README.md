@@ -1,9 +1,11 @@
-# Mygames
+# MyGames
 
 Collezione personale di giochi da tavolo: elenco filtrabile per nome, numero di giocatori,
 durata e tag, con le espansioni possedute annidate sotto ciascun gioco.
 
 Sito: **https://gigat02.github.io/Mygames/**
+
+Salvato sulla schermata Home del telefono si apre a schermo intero con il suo logo.
 
 ## Come funziona
 
@@ -23,6 +25,9 @@ Sito: **https://gigat02.github.io/Mygames/**
   860 px l'elenco torna una tabella.
 - Il tema **scuro è quello predefinito**; il pulsante nella testata passa al chiaro e la scelta
   resta memorizzata nel browser.
+- Salvando il sito sulla schermata Home (`manifest.webmanifest` + `apple-touch-icon`) si
+  apre in modalità `standalone` con il marchio dell'app come icona; le icone PNG si
+  rigenerano con `python tools/genera_icone.py`.
 - I filtri sono quattro menu a tendina — giocatori, durata, tag e ordinamento — più
   l'interruttore per i soli giochi con espansioni. La durata offre cinque intervalli
   preimpostati e due campi `da`/`a` per scriverne uno qualsiasi. I filtri attivi compaiono come

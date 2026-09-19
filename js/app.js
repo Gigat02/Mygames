@@ -1,5 +1,5 @@
 /* ============================================================
-   Mygames — logica dell'applicazione
+   MyGames — logica dell'applicazione
    Il file dati/giochi.xlsx è l'unica fonte dei dati: viene letto
    all'avvio e riscritto (via API GitHub) a ogni modifica.
    ============================================================ */
@@ -82,7 +82,7 @@
   }
 
   function senzaAccenti(testo) {
-    return chiave(testo).normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return chiave(testo).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 
   function creaElemento(tag, classe, testo) {

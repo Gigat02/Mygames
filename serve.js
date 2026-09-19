@@ -1,4 +1,4 @@
-/* Piccolo server statico per provare Mygames in locale.
+/* Piccolo server statico per provare MyGames in locale.
    Serve perché il file Excel viene letto con fetch, che da file:// è bloccato.
 
        node serve.js      →  http://localhost:4180
@@ -19,7 +19,8 @@ const TIPI = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
-  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.webmanifest': 'application/manifest+json'
 };
 
 http.createServer((richiesta, risposta) => {
@@ -50,5 +51,5 @@ http.createServer((richiesta, risposta) => {
     });
   });
 }).listen(PORTA, () => {
-  console.log(`Mygames in ascolto su http://localhost:${PORTA}`);
+  console.log(`MyGames in ascolto su http://localhost:${PORTA}`);
 });

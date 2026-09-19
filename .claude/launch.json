@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mygames",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "serve.js"
+      ],
+      "port": 4180
+    }
+  ]
+}

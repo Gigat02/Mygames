@@ -1,0 +1,52 @@
+# Mygames
+
+Collezione personale di giochi da tavolo: elenco filtrabile per nome, numero di giocatori,
+durata e tag, con le espansioni possedute annidate sotto ciascun gioco.
+
+Sito: **https://gigat02.github.io/Mygames/**
+
+## Come funziona
+
+- I dati stanno in un unico file Excel, `dati/giochi.xlsx`, con tre fogli:
+  - **Giochi** — `Nome`, `Giocatori min`, `Giocatori max`, `Durata min`, `Durata max`, `Tag`, `Note`
+  - **Espansioni** — `Gioco base`, `Espansione`, `Note`
+  - **Config** — `password_hash` (SHA-256 della password dell'area riservata) e `versione`
+- La pagina legge il file con [SheetJS](https://sheetjs.com/) direttamente nel browser: nessun
+  server, nessuna build, nessuna dipendenza da installare.
+- L'area **Gestione** permette di aggiungere, modificare ed eliminare giochi ed espansioni.
+  Ogni modifica viene riscritta nello stesso file Excel.
+
+## Modificare la collezione
+
+1. Apri il sito e premi **Gestione**.
+2. Inserisci la password (quella iniziale è `mygames`: cambiala dal pulsante *Cambia password*).
+3. Aggiungi o correggi le voci. Le modifiche restano nel browser finché non le pubblichi.
+4. Premi **Salva su GitHub**: il file `dati/giochi.xlsx` viene aggiornato nel repository e il
+   sito si riallinea in un paio di minuti.
+
+### Il token GitHub
+
+Per scrivere sul repository serve un [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new)
+limitato a questo repository, con permesso **Contents: Read and write**. Va incollato una volta
+sola nell'area Gestione: resta nel `localStorage` del browser e non finisce mai nel sito.
+
+Senza token il pulsante **Scarica giochi.xlsx** produce il file aggiornato, da sostituire a mano
+in `dati/giochi.xlsx`.
+
+> La password protegge l'interfaccia, non il repository: è comodità, non sicurezza. Ciò che
+> impedisce davvero le modifiche altrui è il token, che solo tu possiedi.
+
+## Sviluppo in locale
+
+```bash
+node serve.js
+```
+
+Poi apri <http://localhost:4180>. Il server statico serve perché `fetch` non legge i file da
+`file://`.
+
+Per rigenerare il file Excel di partenza (operazione una tantum, già eseguita):
+
+```bash
+python tools/seed_excel.py
+```

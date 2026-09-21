@@ -37,6 +37,17 @@ Salvato sulla schermata Home del telefono si apre a schermo intero con il suo lo
   preimpostati e due campi `da`/`a` per scriverne uno qualsiasi. I filtri attivi compaiono come
   etichette sotto la barra e si tolgono con un tocco.
 
+## Proporre una serata
+
+Chi guarda il catalogo può selezionare uno o più giochi con il pulsante tondo a destra di ogni
+riga e premere **Proponi una serata**: indica il proprio nome e il giorno, e la richiesta arriva
+su Telegram a chi possiede i giochi, con data e ora del clic.
+
+Il token del bot non sta nel sito — sarebbe pubblico — ma in un piccolo relay su Cloudflare
+Workers. Come crearlo e collegarlo: [`telegram/LEGGIMI.md`](telegram/LEGGIMI.md). Il relay è
+`telegram/worker.js` e si verifica con `node telegram/prova.mjs`, che intercetta la chiamata a
+Telegram invece di eseguirla.
+
 ## Modificare la collezione
 
 1. Apri il sito e premi **Gestione**.

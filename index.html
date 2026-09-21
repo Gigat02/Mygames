@@ -303,6 +303,50 @@
   </div>
 </footer>
 
+<div class="barra-scelta" id="barra-scelta" hidden>
+  <div class="contenitore barra-scelta__interno">
+    <p class="barra-scelta__testo" id="scelta-testo" aria-live="polite"></p>
+    <button type="button" class="collegamento" id="btn-svuota-scelta">Svuota</button>
+    <button type="button" class="bottone bottone--pieno" id="btn-apri-richiesta">Proponi una serata</button>
+  </div>
+</div>
+
+<div class="modale" id="modale-richiesta" hidden role="dialog" aria-modal="true" aria-labelledby="titolo-richiesta">
+  <div class="modale__riquadro">
+    <div class="modale__testata">
+      <div>
+        <h2 class="titolo" id="titolo-richiesta">Proponi una serata</h2>
+        <p class="sottotitolo">La richiesta arriva su Telegram a chi possiede i giochi.</p>
+      </div>
+      <button type="button" class="bottone bottone--icona" id="btn-chiudi-richiesta" aria-label="Chiudi">✕</button>
+    </div>
+
+    <form class="modulo" id="form-richiesta" autocomplete="off">
+      <div class="campo">
+        <span class="etichetta">Giochi scelti</span>
+        <div class="pillole pillole--scelti" id="elenco-scelti"></div>
+      </div>
+      <div class="campo">
+        <label class="etichetta" for="r-nome">Come ti chiami? *</label>
+        <input type="text" id="r-nome" class="input" maxlength="60" required autocomplete="name" placeholder="Il tuo nome">
+      </div>
+      <div class="campo">
+        <label class="etichetta" for="r-giorno">Quando vorresti giocare? *</label>
+        <input type="date" id="r-giorno" class="input" required>
+      </div>
+      <div class="campo">
+        <label class="etichetta" for="r-nota">Vuoi aggiungere qualcosa?</label>
+        <input type="text" id="r-nota" class="input" maxlength="200" placeholder="Facoltativo — es. dopo cena, a casa mia">
+      </div>
+      <div class="modulo__piede">
+        <button type="submit" class="bottone bottone--pieno" id="btn-invia-richiesta">Invia la richiesta</button>
+        <button type="button" class="bottone bottone--fantasma" id="btn-annulla-richiesta">Annulla</button>
+      </div>
+      <p class="messaggio" id="messaggio-richiesta" hidden></p>
+    </form>
+  </div>
+</div>
+
 <div class="velo" id="velo" hidden></div>
 <div class="avviso" id="avviso" hidden role="status"></div>
 

@@ -19,7 +19,8 @@
   --ombra: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 30px rgba(0, 0, 0, .34);
   --raggio: 14px;
   --raggio-piccolo: 10px;
-  --colonne: minmax(0, 1fr) 104px 96px minmax(0, 1.1fr);
+  --colonne: minmax(0, 1fr) 104px 96px minmax(0, 1.1fr) 40px;
+  color-scheme: dark;
 }
 
 :root[data-tema="light"] {
@@ -35,6 +36,7 @@
   --su-accento: #ffffff;
   --pericolo: #c23b2b;
   --ombra: 0 1px 2px rgba(20, 20, 25, .05), 0 8px 24px rgba(20, 20, 25, .06);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -54,6 +56,8 @@ body {
   font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
   overflow-x: hidden;
 }
+
+body.con-barra { padding-bottom: 86px; }
 
 button, input, select, textarea { font: inherit; color: inherit; }
 input, select, textarea { font-size: 16px; }   /* evita lo zoom automatico su iOS */
@@ -479,7 +483,7 @@ select.input {
   grid-template-columns: minmax(0, 1fr);
   gap: 7px;
   width: 100%;
-  padding: 14px 16px 14px 38px;
+  padding: 14px 58px 14px 38px;
   border: 0;
   border-top: 1px solid var(--bordo);
   background: none;
@@ -584,6 +588,93 @@ select.input {
 .annidata__note { color: var(--testo-tenue); font-style: italic; }
 
 .vuoto { margin: 40px 0; text-align: center; color: var(--testo-tenue); }
+
+/* ---------- scelta dei giochi e richiesta ---------- */
+
+.scegli {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--bordo-forte);
+  background: var(--sfondo);
+  color: var(--testo-tenue);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .13s, border-color .13s, color .13s;
+}
+
+.scegli:hover { border-color: var(--accento); color: var(--accento); }
+
+.scegli[aria-pressed="true"] {
+  background: var(--accento);
+  border-color: var(--accento);
+  color: var(--su-accento);
+  font-weight: 700;
+}
+
+.barra-scelta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--superficie) 94%, transparent);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--bordo);
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .24);
+  animation: sali-foglio .18s ease-out;
+}
+
+.barra-scelta__interno { display: flex; align-items: center; gap: 12px; }
+.barra-scelta__testo { margin: 0; flex: 1; min-width: 0; font-size: 14px; font-weight: 580; }
+.barra-scelta .bottone, .barra-scelta .collegamento { flex: none; }
+
+body.con-barra .avviso { bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+.modale {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, .55);
+  animation: appari .18s ease-out;
+}
+
+.modale__riquadro {
+  width: 100%;
+  max-width: 480px;
+  max-height: 92vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--superficie);
+  border-top: 1px solid var(--bordo);
+  border-radius: 18px 18px 0 0;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  animation: sali-foglio .2s ease-out;
+}
+
+.modale__testata {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.modale__testata .bottone--icona { flex: none; }
+#form-richiesta { display: flex; flex-direction: column; gap: 15px; }
+#form-richiesta .modulo__piede { margin-top: 3px; }
+.pillole--scelti { gap: 7px; }
 
 /* ---------- gestione ---------- */
 
@@ -715,6 +806,9 @@ select.input {
 @media (min-width: 620px) {
   .testata__conteggio { display: block; }
 
+  .modale { align-items: center; padding: 24px; }
+  .modale__riquadro { border: 1px solid var(--bordo); border-radius: var(--raggio); padding: 22px; }
+
   .tendine { grid-template-columns: repeat(4, minmax(0, 1fr)) auto; }
   .tendina__btn--interruttore { grid-column: auto; width: auto; padding-right: 15px; }
 
@@ -768,6 +862,8 @@ select.input {
     padding: 13px 18px 13px 40px;
   }
 
+  .riga { padding-right: 18px; }
+  .scegli { position: static; justify-self: end; }
   .riga__freccia { top: 50%; transform: translateY(-50%); left: 16px; }
   .riga--aperta .riga__freccia { transform: translateY(-50%) rotate(90deg); }
   .riga__nome { font-size: 15px; font-weight: 580; }

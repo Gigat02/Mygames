@@ -15,6 +15,14 @@
   var CHIAVE_TOKEN = 'mygames:token';
   var CHIAVE_CACHE = 'mygames:bozza';
   var CHIAVE_SBLOCCO = 'mygames:sbloccato';
+  var CHIAVE_SCELTI = 'mygames:scelti';
+  var CHIAVE_NOME = 'mygames:nome';
+
+  /* Indirizzo del relay che inoltra le richieste a MyGamesBot su Telegram.
+     Il token del bot vive come segreto dentro il relay, mai in questa pagina.
+     Istruzioni per crearlo: telegram/LEGGIMI.md. Finché resta vuoto, il
+     modulo di richiesta lo dice apertamente invece di fallire in silenzio. */
+  var RELAY_TELEGRAM = '';
 
   var PRESET_DURATA = [
     { id: 'lampo', etichetta: 'Fino a 15 minuti', min: null, max: 15 },
@@ -40,7 +48,8 @@
     versione: 1,
     versioneFile: 1,
     bozza: false,
-    aperti: {}
+    aperti: {},
+    scelti: []
   };
 
   var filtri = {
@@ -679,6 +688,19 @@
       g.tag.forEach(function (t) { contenitoreTag.appendChild(creaElemento('span', 'tag', t)); });
       riga.appendChild(contenitoreTag);
 
+      var scelto = stato.scelti.indexOf(g.nome) >= 0;
+      var scegli = creaElemento('button', 'scegli', scelto ? '✓' : '+');
+      scegli.type = 'button';
+      scegli.setAttribute('aria-pressed', scelto ? 'true' : 'false');
+      scegli.setAttribute('title', scelto ? 'Togli dalla richiesta' : 'Aggiungi alla richiesta');
+      scegli.setAttribute('aria-label', (scelto ? 'Togli ' : 'Aggiungi ') + g.nome
+        + (scelto ? ' dalla richiesta' : ' alla richiesta'));
+      scegli.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        alternaScelta(g.nome);
+      });
+      riga.appendChild(scegli);
+
       if (g.note) riga.appendChild(creaElemento('p', 'riga__note', g.note));
 
       el.righe.appendChild(riga);
@@ -744,9 +766,138 @@
     disegnaConteggio();
     disegnaFiltri();
     disegnaLista();
+    disegnaBarraScelta();
     disegnaTagModulo();
     disegnaGestione();
     disegnaStatoSalvataggio();
+  }
+
+  /* ---------------------------------------------------------
+     Richiesta di una serata (inoltrata a Telegram dal relay)
+     --------------------------------------------------------- */
+
+  function leggiScelti() {
+    try {
+      var grezzo = sessionStorage.getItem(CHIAVE_SCELTI);
+      var elenco = grezzo ? JSON.parse(grezzo) : [];
+      return Array.isArray(elenco) ? elenco : [];
+    } catch (e) { return []; }
+  }
+
+  function scriviScelti() {
+    try { sessionStorage.setItem(CHIAVE_SCELTI, JSON.stringify(stato.scelti)); } catch (e) { /* ignora */ }
+  }
+
+  function alternaScelta(nome) {
+    var i = stato.scelti.indexOf(nome);
+    if (i >= 0) stato.scelti.splice(i, 1); else stato.scelti.push(nome);
+    scriviScelti();
+    disegnaLista();
+    disegnaBarraScelta();
+    if (!el.modale.hidden) {
+      if (stato.scelti.length) disegnaScelti(); else chiudiRichiesta();
+    }
+  }
+
+  function disegnaBarraScelta() {
+    var quanti = stato.scelti.length;
+    var visibile = quanti > 0 && !el.vistaCollezione.hidden;
+    el.barraScelta.hidden = !visibile;
+    document.body.classList.toggle('con-barra', visibile);
+    el.sceltaTesto.textContent = quanti === 1 ? '1 gioco scelto' : quanti + ' giochi scelti';
+  }
+
+  function disegnaScelti() {
+    el.elencoScelti.textContent = '';
+    stato.scelti.forEach(function (nome) {
+      var voce = creaElemento('button', 'attivo');
+      voce.type = 'button';
+      voce.appendChild(creaElemento('span', null, nome));
+      voce.appendChild(creaElemento('span', 'attivo__x', '×'));
+      voce.setAttribute('aria-label', 'Togli ' + nome + ' dalla richiesta');
+      voce.addEventListener('click', function () { alternaScelta(nome); });
+      el.elencoScelti.appendChild(voce);
+    });
+  }
+
+  function oggiISO() {
+    var adesso = new Date();
+    return new Date(adesso.getTime() - adesso.getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 10);
+  }
+
+  function notaRichiesta(testo, errore) {
+    el.messaggioRichiesta.hidden = false;
+    el.messaggioRichiesta.className = 'messaggio' + (errore ? ' messaggio--errore' : '');
+    el.messaggioRichiesta.textContent = testo;
+  }
+
+  function apriRichiesta() {
+    if (!stato.scelti.length) return;
+    chiudiTendine();
+    el.messaggioRichiesta.hidden = true;
+    el.rNome.value = leggiLocale(CHIAVE_NOME) || '';
+    el.rGiorno.min = oggiISO();
+    if (!el.rGiorno.value) el.rGiorno.value = oggiISO();
+    disegnaScelti();
+    el.modale.hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTimeout(function () { (el.rNome.value ? el.rGiorno : el.rNome).focus(); }, 50);
+  }
+
+  function chiudiRichiesta() {
+    el.modale.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  function inviaRichiesta(ev) {
+    ev.preventDefault();
+    var nome = el.rNome.value.trim();
+    var giorno = el.rGiorno.value;
+    if (!nome || !giorno || !stato.scelti.length) return;
+
+    if (!RELAY_TELEGRAM) {
+      notaRichiesta('L\'invio su Telegram non è ancora configurato: manca l\'indirizzo '
+        + 'del relay in js/app.js. Vedi telegram/LEGGIMI.md.', true);
+      return;
+    }
+
+    scriviLocale(CHIAVE_NOME, nome);
+    el.btnInviaRichiesta.disabled = true;
+    notaRichiesta('Invio in corso…');
+
+    /* text/plain evita la richiesta di preflight: al relay arriva comunque JSON. */
+    fetch(RELAY_TELEGRAM, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: JSON.stringify({
+        nome: nome,
+        giorno: giorno,
+        nota: el.rNota.value.trim(),
+        giochi: stato.scelti.slice(),
+        inviatoIl: new Date().toISOString()
+      })
+    })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (corpo) {
+          if (!r.ok) throw new Error(corpo.errore || ('il relay ha risposto ' + r.status));
+          return corpo;
+        });
+      })
+      .then(function () {
+        chiudiRichiesta();
+        stato.scelti = [];
+        scriviScelti();
+        el.rNota.value = '';
+        disegnaLista();
+        disegnaBarraScelta();
+        avvisa('Richiesta inviata su Telegram.');
+      })
+      .catch(function (errore) {
+        notaRichiesta('Non sono riuscito a inviare la richiesta: ' + errore.message
+          + '. Riprova fra poco.', true);
+      })
+      .then(function () { el.btnInviaRichiesta.disabled = false; });
   }
 
   /* ---------------------------------------------------------
@@ -1071,6 +1222,7 @@
     el.vistaCollezione.hidden = gestione;
     el.vistaGestione.hidden = !gestione;
     el.btnGestione.textContent = gestione ? 'Collezione' : 'Gestione';
+    disegnaBarraScelta();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1218,6 +1370,15 @@
       lista: $('lista'),
       righe: $('righe'),
       vuoto: $('vuoto'),
+      barraScelta: $('barra-scelta'),
+      sceltaTesto: $('scelta-testo'),
+      modale: $('modale-richiesta'),
+      elencoScelti: $('elenco-scelti'),
+      rNome: $('r-nome'),
+      rGiorno: $('r-giorno'),
+      rNota: $('r-nota'),
+      btnInviaRichiesta: $('btn-invia-richiesta'),
+      messaggioRichiesta: $('messaggio-richiesta'),
       pannelloSblocco: $('pannello-sblocco'),
       pannelloGestione: $('pannello-gestione'),
       formSblocco: $('form-sblocco'),
@@ -1274,6 +1435,25 @@
       el.ghToken.value = '';
       scriviLocale(CHIAVE_TOKEN, null);
       avvisa('Token rimosso da questo dispositivo.');
+    });
+
+    stato.scelti = leggiScelti();
+
+    $('btn-apri-richiesta').addEventListener('click', apriRichiesta);
+    $('btn-chiudi-richiesta').addEventListener('click', chiudiRichiesta);
+    $('btn-annulla-richiesta').addEventListener('click', chiudiRichiesta);
+    $('form-richiesta').addEventListener('submit', inviaRichiesta);
+    $('btn-svuota-scelta').addEventListener('click', function () {
+      stato.scelti = [];
+      scriviScelti();
+      disegnaLista();
+      disegnaBarraScelta();
+    });
+    el.modale.addEventListener('click', function (ev) {
+      if (ev.target === el.modale) chiudiRichiesta();
+    });
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && !el.modale.hidden) chiudiRichiesta();
     });
 
     preparaTendine();

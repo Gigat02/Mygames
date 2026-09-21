@@ -142,6 +142,7 @@
         dmin: numero(riga['Durata min']),
         dmax: numero(riga['Durata max']),
         tag: separaTag(riga['Tag']),
+        descrizione: riga['Descrizione'] ? String(riga['Descrizione']).trim() : '',
         note: riga['Note'] ? String(riga['Note']).trim() : ''
       });
     });
@@ -175,12 +176,15 @@
   function aWorkbook() {
     var wb = XLSX.utils.book_new();
 
-    var righeGiochi = [['Nome', 'Giocatori min', 'Giocatori max', 'Durata min', 'Durata max', 'Tag', 'Note']];
+    var righeGiochi = [['Nome', 'Giocatori min', 'Giocatori max', 'Durata min', 'Durata max',
+      'Tag', 'Descrizione', 'Note']];
     ordinaPerNome(stato.giochi).forEach(function (g) {
-      righeGiochi.push([g.nome, g.min, g.max, g.dmin, g.dmax, g.tag.join(', '), g.note || null]);
+      righeGiochi.push([g.nome, g.min, g.max, g.dmin, g.dmax, g.tag.join(', '),
+        g.descrizione || null, g.note || null]);
     });
     var fg = XLSX.utils.aoa_to_sheet(righeGiochi);
-    fg['!cols'] = [{ wch: 42 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 62 }, { wch: 30 }];
+    fg['!cols'] = [{ wch: 42 }, { wch: 14 }, { wch: 14 }, { wch: 12 }, { wch: 12 },
+      { wch: 62 }, { wch: 90 }, { wch: 30 }];
     XLSX.utils.book_append_sheet(wb, fg, 'Giochi');
 
     var righeEspansioni = [['Gioco base', 'Espansione', 'Note']];
@@ -288,6 +292,7 @@
       if (testo) {
         var corrisponde = senzaAccenti(g.nome).indexOf(testo) >= 0
           || g.tag.some(function (t) { return senzaAccenti(t).indexOf(testo) >= 0; })
+          || senzaAccenti(g.descrizione).indexOf(testo) >= 0
           || esp.some(function (e) { return senzaAccenti(e.nome).indexOf(testo) >= 0; });
         if (!corrisponde) return false;
       }
@@ -638,12 +643,13 @@
 
     elenco.forEach(function (g) {
       var esp = espansioniDi(g);
-      var aperto = !!stato.aperti[chiave(g.nome)];
+      var apribile = !!(g.descrizione || esp.length);
+      var aperto = apribile && !!stato.aperti[chiave(g.nome)];
 
-      var riga = creaElemento('div', 'riga' + (esp.length ? ' riga--cliccabile' : '') + (aperto ? ' riga--aperta' : ''));
+      var riga = creaElemento('div', 'riga' + (apribile ? ' riga--cliccabile' : '') + (aperto ? ' riga--aperta' : ''));
       riga.setAttribute('role', 'row');
 
-      if (esp.length) {
+      if (apribile) {
         riga.tabIndex = 0;
         riga.setAttribute('aria-expanded', aperto ? 'true' : 'false');
         riga.appendChild(creaElemento('span', 'riga__freccia', '▶'));
@@ -677,7 +683,7 @@
 
       el.righe.appendChild(riga);
 
-      if (esp.length) {
+      if (apribile) {
         var apri = function () {
           stato.aperti[chiave(g.nome)] = !stato.aperti[chiave(g.nome)];
           disegnaLista();
@@ -689,6 +695,7 @@
 
         if (aperto) {
           var blocco = creaElemento('div', 'annidate');
+          if (g.descrizione) blocco.appendChild(creaElemento('p', 'dettaglio', g.descrizione));
           esp.forEach(function (e) {
             var voce = creaElemento('div', 'annidata');
             voce.appendChild(creaElemento('span', 'annidata__etichetta', 'Espansione'));
@@ -829,6 +836,7 @@
     el.gDmin.value = g.dmin || '';
     el.gDmax.value = g.dmax || '';
     el.gTag.value = g.tag.join(', ');
+    el.gDescrizione.value = g.descrizione || '';
     el.gNote.value = g.note || '';
     el.btnSalvaGioco.textContent = 'Salva modifiche';
     el.btnAnnullaGioco.hidden = false;
@@ -884,6 +892,7 @@
       dmin: numero(el.gDmin.value),
       dmax: numero(el.gDmax.value),
       tag: separaTag(el.gTag.value),
+      descrizione: el.gDescrizione.value.trim(),
       note: el.gNote.value.trim()
     };
     if (dati.dmin && !dati.dmax) dati.dmax = dati.dmin;
@@ -1222,6 +1231,7 @@
       gDmin: $('g-dmin'),
       gDmax: $('g-dmax'),
       gTag: $('g-tag'),
+      gDescrizione: $('g-descrizione'),
       gNote: $('g-note'),
       elencoTag: $('elenco-tag'),
       tagSuggeriti: $('tag-suggeriti'),

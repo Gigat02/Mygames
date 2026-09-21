@@ -14,7 +14,10 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
+from descrizioni import DESCRIZIONI
+
 # nome, min giocatori, max giocatori, durata min, durata max, tag
+# (i riassunti stanno in tools/descrizioni.py)
 GIOCHI = [
     ("Pictureka", 2, 6, 45, 45, "Party game, Family game, Osservazione, Bambini"),
     ("Forza 4", 2, 2, 20, 20, "Astratto, Per due, Classico, Family game"),
@@ -215,10 +218,12 @@ def main():
 
     giochi = wb.active
     giochi.title = "Giochi"
-    giochi.append(["Nome", "Giocatori min", "Giocatori max", "Durata min", "Durata max", "Tag", "Note"])
+    giochi.append(["Nome", "Giocatori min", "Giocatori max", "Durata min", "Durata max",
+                   "Tag", "Descrizione", "Note"])
     for nome, gmin, gmax, dmin, dmax, tag in sorted(GIOCHI, key=lambda g: g[0].lower()):
-        giochi.append([nome, gmin, gmax, dmin or None, dmax or None, tag, None])
-    stile_foglio(giochi, [42, 14, 14, 12, 12, 62, 30], "TabellaGiochi")
+        giochi.append([nome, gmin, gmax, dmin or None, dmax or None, tag,
+                       DESCRIZIONI.get(nome), None])
+    stile_foglio(giochi, [42, 14, 14, 12, 12, 62, 90, 30], "TabellaGiochi")
 
     espansioni = wb.create_sheet("Espansioni")
     espansioni.append(["Gioco base", "Espansione", "Note"])
@@ -229,7 +234,7 @@ def main():
     config = wb.create_sheet("Config")
     config.append(["Chiave", "Valore"])
     config.append(["password_hash", hashlib.sha256(PASSWORD_INIZIALE.encode()).hexdigest()])
-    config.append(["versione", "1"])
+    config.append(["versione", "2"])
     stile_foglio(config, [24, 72], "TabellaConfig")
 
     destinazione = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "dati", "giochi.xlsx")

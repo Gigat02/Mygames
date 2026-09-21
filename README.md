@@ -10,7 +10,8 @@ Salvato sulla schermata Home del telefono si apre a schermo intero con il suo lo
 ## Come funziona
 
 - I dati stanno in un unico file Excel, `dati/giochi.xlsx`, con tre fogli:
-  - **Giochi** — `Nome`, `Giocatori min`, `Giocatori max`, `Durata min`, `Durata max`, `Tag`, `Note`
+  - **Giochi** — `Nome`, `Giocatori min`, `Giocatori max`, `Durata min`, `Durata max`, `Tag`,
+    `Descrizione`, `Note`
   - **Espansioni** — `Gioco base`, `Espansione`, `Note`
   - **Config** — `password_hash` (SHA-256 della password dell'area riservata) e `versione`
 - La pagina legge il file con [SheetJS](https://sheetjs.com/) direttamente nel browser: nessun
@@ -28,6 +29,9 @@ Salvato sulla schermata Home del telefono si apre a schermo intero con il suo lo
 - Salvando il sito sulla schermata Home (`manifest.webmanifest` + `apple-touch-icon`) si
   apre in modalità `standalone` con il marchio dell'app come icona; le icone PNG si
   rigenerano con `python tools/genera_icone.py`.
+- Ogni gioco si apre con un tocco e mostra un riassunto di due righe più le espansioni
+  possedute. I riassunti stanno in `tools/descrizioni.py` e finiscono nella colonna
+  `Descrizione`; la ricerca testuale li considera insieme a nome, tag ed espansioni.
 - I filtri sono quattro menu a tendina — giocatori, durata, tag e ordinamento — più
   l'interruttore per i soli giochi con espansioni. La durata offre cinque intervalli
   preimpostati e due campi `da`/`a` per scriverne uno qualsiasi. I filtri attivi compaiono come

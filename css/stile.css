@@ -55,8 +55,8 @@ body {
   overflow-x: hidden;
 }
 
-button, input, select { font: inherit; color: inherit; }
-input, select { font-size: 16px; }          /* evita lo zoom automatico su iOS */
+button, input, select, textarea { font: inherit; color: inherit; }
+input, select, textarea { font-size: 16px; }   /* evita lo zoom automatico su iOS */
 
 .contenitore {
   width: 100%;
@@ -195,6 +195,7 @@ input, select { font-size: 16px; }          /* evita lo zoom automatico su iOS *
 }
 
 .input--compatto { min-height: 38px; font-size: 14px; }
+.input--testo { min-height: 78px; padding: 10px 13px; line-height: 1.55; resize: vertical; }
 .input--numero { width: 68px; min-height: 40px; text-align: center; -moz-appearance: textfield; }
 .input--numero::-webkit-outer-spin-button,
 .input--numero::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
@@ -537,6 +538,27 @@ select.input {
 
 .annidate { background: var(--superficie-alt); border-top: 1px solid var(--bordo); }
 
+.dettaglio {
+  margin: 0;
+  padding: 13px 16px 13px 38px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--testo-tenue);
+  position: relative;
+}
+
+.dettaglio::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--bordo-forte);
+}
+
+.dettaglio + .annidata { border-top: 1px solid var(--bordo); }
+
 .annidata {
   display: flex;
   align-items: baseline;
@@ -752,6 +774,8 @@ select.input {
   .riga__dati { display: contents; }
   .annidata { padding-left: 52px; }
   .annidata::before { left: 34px; }
+  .dettaglio { padding-left: 52px; padding-right: 18px; max-width: 78ch; }
+  .dettaglio::before { left: 34px; }
   .voce--espansione { padding-left: 34px; }
 }
 

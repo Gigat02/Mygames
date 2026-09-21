@@ -29,8 +29,10 @@ Tutto quello che segue si fa una volta sola. Il piano gratuito di Cloudflare bas
    `8123456789:AAH...`.
 
 > **Il token è una password.** Non incollarlo in chat, non metterlo nel repository, non
-> mandarlo a me: serve solo nel punto 4, dentro Cloudflare. Se per sbaglio finisse in giro,
-> scrivi `/revoke` a BotFather e ne ottieni uno nuovo.
+> mandarlo a nessuno: serve solo nel punto 4, dentro Cloudflare. Se per sbaglio finisce in
+> giro — anche solo in un messaggio a qualcuno — scrivi `/revoke` a BotFather, scegli il bot
+> e ne ottieni uno nuovo: il vecchio smette di funzionare all'istante. Il `CHAT_ID` invece
+> non cambia mai, nemmeno dopo una revoca.
 
 Facoltativo, per rifinire: `/setdescription` per la descrizione e `/setuserpic` per usare
 `assets/icona-512.png` come immagine del bot.
@@ -44,12 +46,23 @@ Un bot non può scrivere per primo a qualcuno che non gli ha mai parlato.
 
 ## 3. Trovare il tuo CHAT_ID
 
-1. Apri nel browser questo indirizzo, sostituendo `<TOKEN>` con il token del punto 1:
+Su Telegram cerca **@userinfobot**, aprilo e premi *Avvia*: risponde subito con il tuo
+identificativo numerico, del tipo `Id: 123456789`. Per una chat personale il `CHAT_ID`
+coincide con l'identificativo dell'utente, quindi quel numero è quello che serve.
 
-   `https://api.telegram.org/bot<TOKEN>/getUpdates`
+Non richiede il token e non lo espone da nessuna parte.
 
-2. Nella risposta cerca `"chat":{"id":123456789` — quel numero è il tuo **CHAT_ID**.
-   Se vedi `"result":[]`, torna sulla chat del bot, scrivigli `ciao` e ricarica la pagina.
+<details>
+<summary>In alternativa, con il token</summary>
+
+Apri nel browser `https://api.telegram.org/bot<TOKEN>/getUpdates` e cerca nella risposta
+`"chat":{"id":123456789`. Se vedi `"result":[]`, torna sulla chat del bot, scrivigli `ciao`
+e ricarica la pagina.
+
+Funziona, ma mette il token nella barra degli indirizzi, dove finisce nella cronologia: da
+preferire il metodo qui sopra.
+
+</details>
 
 ## 4. Pubblicare il relay su Cloudflare
 

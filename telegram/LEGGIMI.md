@@ -136,9 +136,19 @@ palesemente sbagliato (più di due giorni di scarto) il relay usa la propria.
 | Sintomo | Causa probabile |
 |---|---|
 | «il relay non ha ancora TOKEN_BOT e CHAT_ID» | i segreti non sono stati salvati, o manca il Deploy dopo averli aggiunti |
-| «Telegram non ha accettato il messaggio» | il `CHAT_ID` è sbagliato, oppure non hai mai premuto *Avvia* sulla chat del bot |
 | «origine non autorizzata» | stai provando da un indirizzo diverso da `https://gigat02.github.io` (vedi sotto) |
 | Il pulsante dice che manca l'indirizzo del relay | il punto 5 non è stato fatto |
+
+Quando Telegram rifiuta il messaggio, il relay riporta la sua spiegazione nel campo
+`dettaglio`. Le due che capitano in fase di configurazione:
+
+| `dettaglio` | Che cosa è successo |
+|---|---|
+| `Unauthorized` | il `TOKEN_BOT` non corrisponde: di solito è stato incollato con uno spazio davanti o dietro, o manca un pezzo |
+| `chat not found` | il `CHAT_ID` è sbagliato, oppure non hai mai premuto *Avvia* sulla chat del bot |
+
+I segreti su Cloudflare non si possono rileggere: se uno dei due è sospetto, si cancella e
+si riscrive da capo.
 
 I log delle chiamate si leggono nella scheda **Logs** del worker su Cloudflare.
 

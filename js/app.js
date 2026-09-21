@@ -22,7 +22,7 @@
      Il token del bot vive come segreto dentro il relay, mai in questa pagina.
      Istruzioni per crearlo: telegram/LEGGIMI.md. Finché resta vuoto, il
      modulo di richiesta lo dice apertamente invece di fallire in silenzio. */
-  var RELAY_TELEGRAM = '';
+  var RELAY_TELEGRAM = 'https://falling-cherry-44f7.giga-tommasi.workers.dev/';
 
   var PRESET_DURATA = [
     { id: 'lampo', etichetta: 'Fino a 15 minuti', min: null, max: 15 },

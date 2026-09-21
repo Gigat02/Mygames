@@ -96,9 +96,16 @@ export default {
     });
 
     if (!esito.ok) {
-      const dettaglio = await esito.text();
+      // La spiegazione di Telegram ("Unauthorized", "chat not found", ...) torna
+      // a chi ha chiamato: in fase di configurazione è l'unico indizio utile.
+      let dettaglio = '';
+      try {
+        dettaglio = (await esito.json()).description || '';
+      } catch (e) {
+        dettaglio = `risposta illeggibile (HTTP ${esito.status})`;
+      }
       console.log('Telegram ha rifiutato il messaggio:', esito.status, dettaglio);
-      return risposta(502, { errore: 'Telegram non ha accettato il messaggio' });
+      return risposta(502, { errore: 'Telegram non ha accettato il messaggio', dettaglio });
     }
 
     return risposta(200, { esito: 'inviato' });
